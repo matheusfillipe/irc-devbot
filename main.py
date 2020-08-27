@@ -31,8 +31,16 @@ log('connected to: ', HOST, PORT)
 
 nick_cr = ('NICK ' + NICK + '\r\n').encode()
 s.send(nick_cr)
+pw_cr = ('PASS' + PASSWORD + '\r\n').encode()
+s.send(pw_cr)
 usernam_cr= ('USER '+" ".join([USERNAME]*3)+' :rainbow pie \r\n').encode()
 s.send(usernam_cr)
+
+if FREENODE_AUTH:
+    auth_cr= ("PRIVMSG NickServ :IDENTIFY " + NICK + " "+PASSWORD +' \r\n').encode()
+    s.send(auth_cr)
+
+
 if utils.SINGLE_CHAN:
     s.send(('JOIN '+CHANNELS[CHAN_N]+' \r\n').encode()) #chanel
 else:
@@ -58,7 +66,6 @@ while 1:
         channel=data.split()[2]
         splitter="PRIVMSG "+channel+" :"
         msg=splitter.join(data.split(splitter)[1:])
-
         for cmd in utils.regex_commands:
             for reg in cmd:
                 m=re.match(reg, msg, flags=re.IGNORECASE)
