@@ -29,6 +29,9 @@ s.connect((HOST, PORT))
 
 log('connected to: ', HOST, PORT)
 
+if USE_SASL:
+    s.send("CAP REQ :sasl")
+
 nick_cr = ('NICK ' + NICK + '\r\n').encode()
 s.send(nick_cr)
 pw_cr = ('PASS' + PASSWORD + '\r\n').encode()
@@ -39,6 +42,22 @@ s.send(usernam_cr)
 if FREENODE_AUTH:
     auth_cr= ("PRIVMSG NickServ :IDENTIFY " + NICK + " "+PASSWORD +' \r\n').encode()
     s.send(auth_cr)
+
+if USE_SASL:
+    import base64
+    s.send("AUTHENTICATE PLAIN")
+    sep="\x00"
+    b=base64.b64encode(NICK +sep+NICK+sep+PASSWORD).decode("ascii") 
+    data = s.recv(4096).decode('utf-8')
+    log("Server SAYS: ", data)
+    s.send(("AUTHENTICATE "+b).encode())
+    log("PERFORMING SASL PLAIN AUTH....")
+    data = s.recv(4096).decode('utf-8')
+    log("Server SAYS: ", data)
+    data = s.recv(4096).decode('utf-8')
+    log("Server SAYS: ", data)
+    s.send("CAP END")
+
 
 
 if utils.SINGLE_CHAN:
