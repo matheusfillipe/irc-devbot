@@ -30,7 +30,7 @@ s.connect((HOST, PORT))
 log('connected to: ', HOST, PORT)
 
 if USE_SASL:
-    s.send("CAP REQ :sasl")
+    s.send(("CAP REQ :sasl").encode())
 
 nick_cr = ('NICK ' + NICK + '\r\n').encode()
 s.send(nick_cr)
@@ -45,9 +45,9 @@ if FREENODE_AUTH:
 
 if USE_SASL:
     import base64
-    s.send("AUTHENTICATE PLAIN")
+    s.send(("AUTHENTICATE PLAIN").encode())
     sep="\x00"
-    b=base64.b64encode(NICK +sep+NICK+sep+PASSWORD).decode("ascii") 
+    b=base64.b64encode((NICK +sep+NICK+sep+PASSWORD).encode("utf8")).decode("utf8") 
     data = s.recv(4096).decode('utf-8')
     log("Server SAYS: ", data)
     s.send(("AUTHENTICATE "+b).encode())
@@ -56,8 +56,7 @@ if USE_SASL:
     log("Server SAYS: ", data)
     data = s.recv(4096).decode('utf-8')
     log("Server SAYS: ", data)
-    s.send("CAP END")
-
+    s.send(("CAP END").encode())
 
 
 if utils.SINGLE_CHAN:
@@ -82,29 +81,30 @@ while 1:
         continue
 
     try:
-        channel=data.split()[2]
-        splitter="PRIVMSG "+channel+" :"
-        msg=splitter.join(data.split(splitter)[1:])
-        for cmd in utils.regex_commands:
-            for reg in cmd:
-                m=re.match(reg, msg, flags=re.IGNORECASE)
-                if m:
-                    result=cmd[reg](m)
-                    if result:
-                        send_message(result, channel)
-                        continue
+        if len(data.split())>=3:
+            channel=data.split()[2]
+            splitter="PRIVMSG "+channel+" :"
+            msg=splitter.join(data.split(splitter)[1:])
+            for cmd in utils.regex_commands:
+                for reg in cmd:
+                    m=re.match(reg, msg, flags=re.IGNORECASE)
+                    if m:
+                        result=cmd[reg](m)
+                        if result:
+                            send_message(result, channel)
+                            continue
 
-        for word in msg.split(" "):
-            if len(word)<6:
-                continue
-            result=None
-            word=word.strip()
-            if word[-1] in [" ", "?", ",", ";", ":", "\\"]:
-                word=word[:-1]
-            if utils.validateUrl(word):
-                result=utils.url_commands[-1](word)
-            if result:
-                send_message(result, channel)
+            for word in msg.split(" "):
+                if len(word)<6:
+                    continue
+                result=None
+                word=word.strip()
+                if word[-1] in [" ", "?", ",", ";", ":", "\\"]:
+                    word=word[:-1]
+                if utils.validateUrl(word):
+                    result=utils.url_commands[-1](word)
+                if result:
+                    send_message(result, channel)
 
     except Exception as e:
         log("ERROR IN MAINLOOP: ",e)
